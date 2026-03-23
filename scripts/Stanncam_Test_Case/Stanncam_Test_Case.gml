@@ -1,5 +1,6 @@
 /// STANNcam tests powered by Crispy
 
+/// @ignore
 function Stanncam_Test_Case()
 {
 	var _runner = new CrispyRunner("stanncam_runner");
@@ -15,17 +16,143 @@ function Stanncam_Test_Case()
 
 	_runner.AddTestSuite(_suite);
 	_runner.Discover(_suite, "test_stanncam_");
+	__stanncam_add_async_cases(_suite);
 
 	return _runner;
 }
 
+/// @ignore
+function __stanncam_add_async_cases(_suite)
+{
+	var _move_case = new CrispyCaseAsync("stanncam_move_caseasync_duration_reaches_target_after_steps");
+	_move_case.SetUp(function()
+	{
+		var _vars = crispy_vars();
+		__stanncam_test_bootstrap();
+		_vars.stanncam_async_move_phase = 0;
+		_vars.stanncam_async_move_cam = new Stanncam(0, 0, 320, 180);
+	});
+
+	_move_case
+		.WaitStep(function()
+		{
+			var _vars = crispy_vars();
+			var _cam = _vars.stanncam_async_move_cam;
+
+			if (_vars.stanncam_async_move_phase == 0)
+			{
+				_cam.move(100, 50, 2);
+				_vars.stanncam_async_move_phase = 1;
+				return false;
+			}
+
+			if (_vars.stanncam_async_move_phase == 1)
+			{
+				_cam.__step();
+				_vars.stanncam_async_move_phase = 2;
+				return false;
+			}
+
+			_cam.__step();
+			var _position = _cam.get_position();
+			AssertEqual(_position.x, 100, "CaseAsync move should reach target x after duration steps");
+			AssertEqual(_position.y, 50, "CaseAsync move should reach target y after duration steps");
+			return true;
+		})
+		.Timeout(60, "frames");
+
+	_move_case.TearDown(function()
+	{
+		var _vars = crispy_vars();
+		if (variable_struct_exists(_vars, "stanncam_async_move_cam"))
+		{
+			var _cam = _vars.stanncam_async_move_cam;
+			if (is_instanceof(_cam, Stanncam) && !_cam.is_destroyed())
+			{
+				_cam.destroy();
+			}
+		}
+		__stanncam_test_reset_runtime();
+	});
+
+	_suite.AddCase(_move_case);
+
+	var _offset_case = new CrispyCaseAsync("stanncam_offset_caseasync_duration_reaches_target_after_steps");
+	_offset_case.SetUp(function()
+	{
+		var _vars = crispy_vars();
+		__stanncam_test_bootstrap();
+		_vars.stanncam_async_offset_phase = 0;
+		_vars.stanncam_async_offset_cam = new Stanncam(0, 0, 320, 180);
+	});
+
+	_offset_case
+		.WaitStep(function()
+		{
+			var _vars = crispy_vars();
+			var _cam = _vars.stanncam_async_offset_cam;
+
+			if (_vars.stanncam_async_offset_phase == 0)
+			{
+				_cam.offset(30, -20, 2);
+				_vars.stanncam_async_offset_phase = 1;
+				return false;
+			}
+
+			if (_vars.stanncam_async_offset_phase == 1)
+			{
+				_cam.__step();
+				_vars.stanncam_async_offset_phase = 2;
+				return false;
+			}
+
+			_cam.__step();
+			AssertEqual(_cam.__offset_x, 30, "CaseAsync offset should reach target x after duration steps");
+			AssertEqual(_cam.__offset_y, -20, "CaseAsync offset should reach target y after duration steps");
+			return true;
+		})
+		.Timeout(60, "frames");
+
+	_offset_case.TearDown(function()
+	{
+		var _vars = crispy_vars();
+		if (variable_struct_exists(_vars, "stanncam_async_offset_cam"))
+		{
+			var _cam = _vars.stanncam_async_offset_cam;
+			if (is_instanceof(_cam, Stanncam) && !_cam.is_destroyed())
+			{
+				_cam.destroy();
+			}
+		}
+		__stanncam_test_reset_runtime();
+	});
+
+	_suite.AddCase(_offset_case);
+}
+
+/// @ignore
 function run_stanncam_tests()
 {
 	var _runner = Stanncam_Test_Case();
 	_runner.Run();
+
+	// Async cases require runner updates on later frames to complete and emit final logs.
+	if (_runner.IsRunning())
+	{
+        var _context = {call: undefined, runner: _runner}
+        _context.call = call_later(1, time_source_units_frames, method(_context, function() {
+            runner.Update();
+            if (!runner.IsRunning() ) 
+            {
+                call_cancel(call);
+            }
+        }), true);
+	}
+
 	return _runner;
 }
 
+/// @ignore
 function __stanncam_test_reset_runtime()
 {
 	var _config = StanncamConfig();
@@ -50,6 +177,7 @@ function __stanncam_test_reset_runtime()
 	_config.draw_zones = false;
 }
 
+/// @ignore
 function __stanncam_test_bootstrap()
 {
 	__stanncam_test_reset_runtime();
@@ -57,6 +185,7 @@ function __stanncam_test_bootstrap()
 	return StanncamConfig();
 }
 
+/// @ignore
 function test_stanncam_config_returns_singleton_reference()
 {
 	var _config_a = StanncamConfig();
@@ -65,6 +194,7 @@ function test_stanncam_config_returns_singleton_reference()
 	AssertTrue(_config_a == _config_b, "StanncamConfig should return the same singleton struct");
 }
 
+/// @ignore
 function test_stanncam_init_sets_core_config_values()
 {
 	var _config = __stanncam_test_bootstrap();
@@ -81,6 +211,7 @@ function test_stanncam_init_sets_core_config_values()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_set_resolution_updates_config()
 {
 	var _config = __stanncam_test_bootstrap();
@@ -92,6 +223,7 @@ function test_stanncam_set_resolution_updates_config()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_aspect_ratio_setters_update_flags()
 {
 	__stanncam_test_bootstrap();
@@ -105,6 +237,7 @@ function test_stanncam_aspect_ratio_setters_update_flags()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_constructor_registers_camera()
 {
 	var _config = __stanncam_test_bootstrap();
@@ -124,6 +257,7 @@ function test_stanncam_camera_constructor_registers_camera()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_public_setters_update_state()
 {
 	__stanncam_test_bootstrap();
@@ -153,6 +287,7 @@ function test_stanncam_camera_public_setters_update_state()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_move_updates_position_when_not_following()
 {
 	__stanncam_test_bootstrap();
@@ -168,6 +303,42 @@ function test_stanncam_camera_move_updates_position_when_not_following()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
+function test_stanncam_camera_move_with_duration_reaches_target_after_steps()
+{
+	__stanncam_test_bootstrap();
+	var _camera = new Stanncam(0, 0, 320, 180);
+
+	_camera.move(100, 50, 2);
+	_camera.__step();
+	_camera.__step();
+
+	var _position = _camera.get_position();
+	AssertEqual(_position.x, 100, "Move with duration should reach target x after duration steps");
+	AssertEqual(_position.y, 50, "Move with duration should reach target y after duration steps");
+
+	_camera.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_camera_offset_with_duration_reaches_target_after_steps()
+{
+	__stanncam_test_bootstrap();
+	var _camera = new Stanncam(0, 0, 320, 180);
+
+	_camera.offset(30, -20, 2);
+	_camera.__step();
+	_camera.__step();
+
+	AssertEqual(_camera.__offset_x, 30, "Offset with duration should reach target x after duration steps");
+	AssertEqual(_camera.__offset_y, -20, "Offset with duration should reach target y after duration steps");
+
+	_camera.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
 function test_stanncam_camera_clone_copies_public_state()
 {
 	__stanncam_test_bootstrap();
@@ -212,6 +383,7 @@ function test_stanncam_camera_clone_copies_public_state()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_toggle_cameras_paused_updates_all_cameras()
 {
 	__stanncam_test_bootstrap();
@@ -231,6 +403,7 @@ function test_stanncam_toggle_cameras_paused_updates_all_cameras()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_destroy_unregisters_camera()
 {
 	var _config = __stanncam_test_bootstrap();
@@ -248,6 +421,7 @@ function test_stanncam_camera_destroy_unregisters_camera()
 
 // ========== COORDINATE CONVERSION TESTS ==========
 
+/// @ignore
 function test_stanncam_camera_room_to_gui_xy_returns_valid_coordinates()
 {
 	__stanncam_test_bootstrap();
@@ -263,6 +437,7 @@ function test_stanncam_camera_room_to_gui_xy_returns_valid_coordinates()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_room_to_gui_xy_with_zoom()
 {
 	__stanncam_test_bootstrap();
@@ -279,6 +454,7 @@ function test_stanncam_camera_room_to_gui_xy_with_zoom()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_room_to_display_xy_returns_valid_coordinates()
 {
 	__stanncam_test_bootstrap();
@@ -294,6 +470,7 @@ function test_stanncam_camera_room_to_display_xy_returns_valid_coordinates()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_room_to_display_xy_with_offset()
 {
 	__stanncam_test_bootstrap();
@@ -312,6 +489,7 @@ function test_stanncam_camera_room_to_display_xy_with_offset()
 
 // ========== ZONE TESTS ==========
 
+/// @ignore
 function test_stanncam_camera_get_active_zone_returns_noone_without_follow()
 {
 	__stanncam_test_bootstrap();
@@ -325,6 +503,7 @@ function test_stanncam_camera_get_active_zone_returns_noone_without_follow()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_get_active_zone_returns_value_type()
 {
 	__stanncam_test_bootstrap();
@@ -344,6 +523,7 @@ function test_stanncam_camera_get_active_zone_returns_value_type()
 
 // ========== OUT OF BOUNDS TESTS ==========
 
+/// @ignore
 function test_stanncam_camera_out_of_bounds_returns_bool()
 {
 	__stanncam_test_bootstrap();
@@ -360,28 +540,19 @@ function test_stanncam_camera_out_of_bounds_returns_bool()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_out_of_bounds_with_margin_affects_bounds()
 {
 	__stanncam_test_bootstrap();
 	var _camera = new Stanncam(0, 0, 320, 180);
 
-	// Without margin - check behavior at camera origin
-	var _no_margin = _camera.out_of_bounds(0, 0, 0);
-	
-	// With margin - same position should be more likely to be out of bounds
-	// (margin reduces the viewable area)
-	var _with_margin = _camera.out_of_bounds(0, 0, 10);
+	// Camera center is a stable reference point for bounds checks.
+	var _center = _camera.get_position();
+	var _no_margin = _camera.out_of_bounds(_center.x, _center.y, 0);
+	var _very_large_margin = _camera.out_of_bounds(_center.x, _center.y, 200);
 
-	// Main assertion: margin parameter is respected - it changes the effective bounds
-	// When margin is larger, more positions fall outside the bounds
-	AssertTrue(is_bool(_no_margin) && is_bool(_with_margin), "Both calls should return booleans");
-	
-	// If no margin position is in bounds, margin should make it more likely to be out
-	if (!_no_margin) 
-	{
-		// Position was in bounds without margin, should be more restrictive with margin
-		AssertTrue(true, "Margin parameter is accepted and affects boundary calculation");
-	}
+	AssertFalse(_no_margin, "Camera center should be in bounds with 0 margin");
+	AssertTrue(_very_large_margin, "A very large margin should push center out of bounds");
 
 	_camera.destroy();
 	__stanncam_test_reset_runtime();
@@ -389,6 +560,7 @@ function test_stanncam_camera_out_of_bounds_with_margin_affects_bounds()
 
 // ========== SCREEN SHAKE TESTS ==========
 
+/// @ignore
 function test_stanncam_camera_shake_screen_initializes_shake_state()
 {
 	__stanncam_test_bootstrap();
@@ -404,6 +576,7 @@ function test_stanncam_camera_shake_screen_initializes_shake_state()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_shake_screen_with_zero_duration()
 {
 	__stanncam_test_bootstrap();
@@ -420,6 +593,7 @@ function test_stanncam_camera_shake_screen_with_zero_duration()
 
 // ========== EDGE CASES ==========
 
+/// @ignore
 function test_stanncam_camera_destroy_twice_safe()
 {
 	__stanncam_test_bootstrap();
@@ -437,6 +611,7 @@ function test_stanncam_camera_destroy_twice_safe()
 	__stanncam_test_reset_runtime();
 }
 
+/// @ignore
 function test_stanncam_camera_methods_after_destroyed_returns_expected_states()
 {
 	__stanncam_test_bootstrap();
@@ -450,5 +625,117 @@ function test_stanncam_camera_methods_after_destroyed_returns_expected_states()
 	var _pos = _camera.get_position();
 	AssertTrue(is_struct(_pos), "get_position should return a struct even after destroy");
 
+	__stanncam_test_reset_runtime();
+}
+
+// ========== LEGACY COVERAGE TESTS ==========
+
+/// @ignore
+function test_stanncam_constructor_check_default_values()
+{
+	var _config = __stanncam_test_bootstrap();
+	var _camera = new Stanncam();
+	var _position = _camera.get_position();
+	var _dimensions = _camera.get_dimensions();
+
+	AssertEqual(_position.x, 0, "Default x should be 0");
+	AssertEqual(_position.y, 0, "Default y should be 0");
+	AssertEqual(_dimensions.width, _config.game_w, "Default width should use game width");
+	AssertEqual(_dimensions.height, _config.game_h, "Default height should use game height");
+	AssertFalse(_camera.__surface_extra_on, "surface_extra_on should default to false");
+	AssertTrue(_camera.get_smooth_draw(), "smooth_draw should default to true");
+
+	_camera.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_constructor_create_with_specified_values()
+{
+	__stanncam_test_bootstrap();
+	var _camera = new Stanncam(100, 100, 800, 600, true, false);
+	var _position = _camera.get_position();
+	var _dimensions = _camera.get_dimensions();
+
+	AssertEqual(_position.x, 100, "Constructor x should match input");
+	AssertEqual(_position.y, 100, "Constructor y should match input");
+	AssertEqual(_dimensions.width, 800, "Constructor width should match input");
+	AssertEqual(_dimensions.height, 600, "Constructor height should match input");
+	AssertTrue(_camera.__surface_extra_on, "Constructor should set surface_extra_on");
+	AssertFalse(_camera.get_smooth_draw(), "Constructor should set smooth_draw");
+
+	_camera.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_to_string_should_return_string()
+{
+	__stanncam_test_bootstrap();
+	var _camera = new Stanncam();
+	AssertEqual(typeof(_camera.toString()), "string", "toString should return a string");
+
+	_camera.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_surface_exists_after_update_view_size_for_non_app_surface()
+{
+	__stanncam_test_bootstrap();
+	var _camera0 = new Stanncam();
+	var _camera1 = new Stanncam();
+
+	_camera1.__update_view_size(true);
+	AssertTrue(surface_exists(_camera1.__surface), "Non-app-surface camera should have a valid surface after update_view_size");
+
+	_camera1.destroy();
+	_camera0.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_surface_freed_after_destroy_non_app_surface()
+{
+	__stanncam_test_bootstrap();
+	var _camera0 = new Stanncam();
+	var _camera1 = new Stanncam();
+
+	_camera1.__update_view_size(true);
+	var _surface = _camera1.__surface;
+	AssertTrue(surface_exists(_surface), "Surface should exist before destroy");
+
+	_camera1.destroy();
+	AssertFalse(surface_exists(_surface), "Surface should be freed after destroy");
+
+	_camera0.destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_zone_image_angle_of_360_wraps_to_0()
+{
+	__stanncam_test_bootstrap();
+	var _zone = instance_create_depth(0, 0, 0, obj_stanncam_zone);
+	_zone.image_angle = 360;
+	with (_zone) event_perform(ev_create, 0);
+
+	AssertEqual(_zone.image_angle, 0, "Zone image_angle 360 should wrap to 0");
+
+	with (_zone) instance_destroy();
+	__stanncam_test_reset_runtime();
+}
+
+/// @ignore
+function test_stanncam_zone_image_angle_of_negative_360_wraps_to_0()
+{
+	__stanncam_test_bootstrap();
+	var _zone = instance_create_depth(0, 0, 0, obj_stanncam_zone);
+	_zone.image_angle = -360;
+	with (_zone) event_perform(ev_create, 0);
+
+	AssertEqual(_zone.image_angle, 0, "Zone image_angle -360 should wrap to 0");
+
+	with (_zone) instance_destroy();
 	__stanncam_test_reset_runtime();
 }

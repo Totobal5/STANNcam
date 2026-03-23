@@ -34,6 +34,7 @@
   "ForcedPrefabProjectReferences":[],
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"crispy_license.txt","CopyToMask":-1,"filePath":"datafiles","name":"crispy_license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"stanncam_license.txt","CopyToMask":-1,"filePath":"datafiles","name":"stanncam_license.txt","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
   "isEcma":false,
   "LibraryEmitters":[],
