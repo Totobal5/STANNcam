@@ -26,22 +26,23 @@ draw_set_valign(fa_top);
 draw_text_outline(1, 0, "[RMB] Zoom amount: " + string(zoom_text), _outline_width, _precision);
 draw_text_outline(1, _offset * 1, "[F] camera shake", _outline_width, _precision);
 draw_text_outline(1, _offset * 2, "[P] camera paused: " + (cam1.get_paused() ? "ON" : "OFF"), _outline_width, _precision);
-draw_text_outline(1, _offset * 3, "[B] smooth camera: " + (cam1.smooth_draw ? "ON" : "OFF"), _outline_width, _precision);
+draw_text_outline(1, _offset * 3, "[B] smooth camera: " + (cam1.get_smooth_draw() ? "ON" : "OFF"), _outline_width, _precision);
 draw_text_outline(1, _offset * 4, "[1 & 2 & 3] to switch", _outline_width, _precision);
 draw_text_outline(1, _offset * 5, "between example rooms", _outline_width, _precision);
 
 //draw current camera position
 draw_set_halign(fa_right);
 draw_text_outline(-1, 0, $"x:{cam1.get_x()} y:{cam1.get_y()} ", _outline_width, _precision);
-draw_text_outline(-1, _offset * 1, $"x_frac:{cam1.x_frac} y_frac:{cam1.y_frac} ", _outline_width, _precision);
+draw_text_outline(-1, _offset * 1, $"x_frac:{cam1.get_x_frac()} y_frac:{cam1.get_y_frac()} ", _outline_width, _precision);
 
 //draw current resolution text
+var _config = StanncamConfig();
 draw_set_halign(fa_right);
-draw_text_outline(global.gui_w - 1, 0, "Game size: " + string(global.game_w) + " x " + string(global.game_h), _outline_width, _precision);
-draw_text_outline(global.gui_w - 1, _offset * 1, "Resolution: " + string(global.res_w) + " x " + string(global.res_h) + " [F1]", _outline_width, _precision);
-draw_text_outline(global.gui_w - 1, _offset * 2, "Keep aspect ratio: " + string(stanncam_get_keep_aspect_ratio()) + " [F3]", _outline_width, _precision);
+draw_text_outline(_config.gui_w - 1, 0, "Game size: " + string(_config.game_w) + " x " + string(_config.game_h), _outline_width, _precision);
+draw_text_outline(_config.gui_w - 1, _offset * 1, "Resolution: " + string(_config.res_w) + " x " + string(_config.res_h) + " [F1]", _outline_width, _precision);
+draw_text_outline(_config.gui_w - 1, _offset * 2, "Keep aspect ratio: " + string(stanncam_get_keep_aspect_ratio()) + " [F3]", _outline_width, _precision);
 var _window_mode_text = "";
-switch (global.window_mode) {
+switch (_config.window_mode) {
 	case STANNCAM_WINDOW_MODE.WINDOWED:
 		_window_mode_text = "windowed";
 		break;
@@ -53,7 +54,7 @@ switch (global.window_mode) {
 		break;
 }
 
-draw_text_outline(global.gui_w - 1, _offset * 3, "window mode: " + _window_mode_text + " [F4]", _outline_width, _precision);
+draw_text_outline(_config.gui_w - 1, _offset * 3, "window mode: " + _window_mode_text + " [F4]", _outline_width, _precision);
 
 draw_set_halign(fa_left);
 draw_text(dx, dy, $"{dx} {dy}");

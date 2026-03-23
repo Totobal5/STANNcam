@@ -18,7 +18,7 @@ if(mouse_check_button_pressed(mb_right)){
 			break;
 	}
 }
-zoom_text = cam1.zoom_amount;
+zoom_text = cam1.get_zoom_amount();
 
 //do a screenshake
 if(keyboard_check_pressed(ord("F"))){
@@ -27,15 +27,15 @@ if(keyboard_check_pressed(ord("F"))){
 
 //toggle camera pause
 if(keyboard_check_pressed(ord("P"))){
-	if(is_instanceof(cam1, stanncam)){
+	if(is_instanceof(cam1, Stanncam)){
 		cam1.toggle_paused();
 	}
 }
 
 //toggle camera pause
 if(keyboard_check_pressed(ord("B"))){
-	if(is_instanceof(cam1, stanncam)){
-		cam1.smooth_draw = !cam1.smooth_draw;
+	if(is_instanceof(cam1, Stanncam)){
+		cam1.toggle_smooth_draw();
 	}
 }
 
@@ -52,8 +52,9 @@ if(keyboard_check_pressed(vk_f3)){
 }
 
 //toggle between window modes
+var _config = StanncamConfig();
 if(keyboard_check_pressed(vk_f4)){
-	var _window_mode = global.window_mode;
+	var _window_mode = _config.window_mode;
 	_window_mode++;
 	if(_window_mode == STANNCAM_WINDOW_MODE.__SIZE){
 		_window_mode = 0;

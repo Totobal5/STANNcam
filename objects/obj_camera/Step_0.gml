@@ -1,9 +1,10 @@
 //toggle following player
+var _config = StanncamConfig();
 if(keyboard_check_pressed(vk_space)){
-	if(instance_exists(cam1.follow)){
-		cam1.follow = noone;
+	if(instance_exists(cam1.get_follow())){
+		cam1.set_follow(noone);
 	} else {
-		cam1.follow = obj_player;
+		cam1.set_follow(obj_player);
 	}
 }
 
@@ -12,13 +13,13 @@ if(keyboard_check_pressed(vk_f5)){
 	split_screen = !split_screen;
 	
 	if(split_screen){
-		cam1.set_size(global.game_w / 2, global.game_h);
+		cam1.set_size(_config.game_w / 2, _config.game_h);
 		
 		cam2 = cam1.clone();
-		cam2.follow = obj_player2;
+		if (is_instanceof(cam2, Stanncam)) { cam2.set_follow(obj_player2); }
 	} else {
-		if(!cam2.is_destroyed()) cam2.destroy();
-		cam1.set_size(global.game_w, global.game_h);
+		if (is_instanceof(cam2, Stanncam) && !cam2.is_destroyed()) { cam2.destroy(); }
+		cam1.set_size(_config.game_w, _config.game_h);
 	}
 }
 
@@ -58,7 +59,7 @@ if(mouse_check_button_pressed(mb_right)){
 	}
 }
 
-zoom_text = cam1.zoom_amount;
+zoom_text = cam1.get_zoom_amount();
 
 //toggle camera speed
 if(keyboard_check_pressed(vk_tab)){
@@ -83,7 +84,7 @@ if(keyboard_check_pressed(vk_tab)){
 
 //toggle if the camera is constrained to the room size
 if(keyboard_check_pressed(vk_control)){
-	cam1.room_constrain = !cam1.room_constrain;
+	cam1.toggle_room_constrain();
 }
 
 //do a screenshake
@@ -93,13 +94,13 @@ if(keyboard_check_pressed(ord("F"))){
 
 //Toggle smooth camera
 if(keyboard_check_pressed(ord("B"))){
-	cam1.smooth_draw = !cam1.smooth_draw;
+	cam1.toggle_smooth_draw();
 }
 
 //toggle camera pause
 if(keyboard_check_pressed(ord("P"))){
 	var _paused = false;
-	if(is_instanceof(cam1, stanncam)){
+	if(is_instanceof(cam1, Stanncam)){
 		_paused = !cam1.get_paused();
 	}
 	stanncam_set_cameras_paused(_paused);
@@ -145,7 +146,7 @@ if(keyboard_check_pressed(vk_f3)){
 
 //toggle between window modes
 if(keyboard_check_pressed(vk_f4)){
-	var _window_mode = global.window_mode;
+	var _window_mode = _config.window_mode;
 	_window_mode++;
 	if(_window_mode == STANNCAM_WINDOW_MODE.__SIZE){
 		_window_mode = 0;

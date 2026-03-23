@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam",
+  "%Name":"crispy_Suite",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam",
+  "name":"crispy_Suite",
   "parent":{
-    "name":"STANNcam",
-    "path":"folders/STANNcam.yy",
+    "name":"Crispy",
+    "path":"folders/Crispy.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

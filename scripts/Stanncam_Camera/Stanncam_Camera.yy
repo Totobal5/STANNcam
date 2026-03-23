@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam_config",
+  "%Name":"Stanncam_Camera",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam_config",
+  "name":"Stanncam_Camera",
   "parent":{
     "name":"STANNcam",
-    "path":"folders/STANNcam.yy",
+    "path":"folders/Extensions/STANNcam.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

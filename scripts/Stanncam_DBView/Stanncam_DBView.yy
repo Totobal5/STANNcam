@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam_macros",
+  "%Name":"Stanncam_DBView",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam_macros",
+  "name":"Stanncam_DBView",
   "parent":{
-    "name":"Miscellaneous",
-    "path":"folders/STANNcam/Miscellaneous.yy",
+    "name":"STANNcam",
+    "path":"folders/Extensions/STANNcam.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

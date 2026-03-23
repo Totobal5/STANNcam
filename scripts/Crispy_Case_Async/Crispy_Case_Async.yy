@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam_manager",
+  "%Name":"Crispy_Case_Async",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam_manager",
+  "name":"Crispy_Case_Async",
   "parent":{
-    "name":"STANNcam",
-    "path":"folders/STANNcam.yy",
+    "name":"Crispy",
+    "path":"folders/Crispy.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -1,10 +1,9 @@
 //camera
 stanncam_init(320, 180, 1280, 720, 640, 360);
-cam1 = new stanncam(obj_player.x, obj_player.y, global.game_w, global.game_h, 0, 0);
-cam1.follow = obj_player;
+cam1 = new Stanncam(obj_player.x, obj_player.y, StanncamConfig().game_w, StanncamConfig().game_h, 0, 0);
+cam1.set_follow(obj_player);
 
-cam1.bounds_w = 10;
-cam1.bounds_h = 10;
+cam1.set_bounds(10, 10);
 
 cam2 = undefined;
 
@@ -16,7 +15,7 @@ pointer_x = 0;
 pointer_y = 0;
 
 zoom_mode = 0;
-zoom_text = cam1.zoom_amount;
+zoom_text = cam1.get_zoom_amount();
 
 speed_mode = 1;
 

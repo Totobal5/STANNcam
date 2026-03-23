@@ -9,7 +9,8 @@
 //you most likely want to just pick one retro resolution for your game and gui
 //and then expose the desktop resolutions to the player in a settings menu, but it's up to you
 
-enum STANNCAM_RES_PRESETS {
+enum STANNCAM_RES_PRESETS 
+{
 	//Retro consoles
 	ATARI_192P,
 	NES_240P,

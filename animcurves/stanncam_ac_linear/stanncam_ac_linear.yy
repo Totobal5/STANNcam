@@ -10,8 +10,8 @@
   "function":0,
   "name":"stanncam_ac_linear",
   "parent":{
-    "name":"Animation Curves - Add more as needed",
-    "path":"folders/STANNcam/Miscellaneous/Animation Curves - Add more as needed.yy",
+    "name":"Animation Curves",
+    "path":"folders/Extensions/STANNcam/Animation Curves.yy",
   },
   "resourceType":"GMAnimCurve",
   "resourceVersion":"2.0",

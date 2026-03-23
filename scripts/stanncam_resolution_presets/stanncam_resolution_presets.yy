@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam_resolution_presets",
+  "%Name":"Stanncam_Resolution_Presets",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam_resolution_presets",
+  "name":"Stanncam_Resolution_Presets",
   "parent":{
-    "name":"Miscellaneous",
-    "path":"folders/STANNcam/Miscellaneous.yy",
+    "name":"STANNcam",
+    "path":"folders/Extensions/STANNcam.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

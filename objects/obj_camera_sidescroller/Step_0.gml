@@ -18,7 +18,7 @@ if(mouse_check_button_pressed(mb_right)){
 			break;
 	}
 }
-zoom_text = cam1.zoom_amount;
+zoom_text = cam1.get_zoom_amount();
 
 //toggle camera speed
 if(keyboard_check_pressed(vk_tab)){
@@ -47,12 +47,12 @@ if(keyboard_check_pressed(vk_tab)){
 
 //toggle if the camera is constrained to the room size
 if(keyboard_check_pressed(vk_control)){
-	cam1.room_constrain = !cam1.room_constrain;
+	cam1.toggle_room_constrain();
 }
 
 //toggle debug drawing
 if(keyboard_check_pressed(vk_shift)){
-	cam1.debug_draw = !cam1.debug_draw;
+	cam1.toggle_debug_draw();
 }
 
 //do a screenshake
@@ -63,7 +63,7 @@ if(keyboard_check_pressed(ord("F"))){
 //toggle camera pause
 if(keyboard_check_pressed(ord("P"))){
 	var _paused = false;
-	if(is_instanceof(cam1, stanncam)){
+	if(is_instanceof(cam1, Stanncam)){
 		_paused = !cam1.get_paused();
 	}
 	stanncam_set_cameras_paused(_paused);
@@ -117,8 +117,9 @@ if(keyboard_check_pressed(vk_f3)){
 }
 
 //toggle between window modes
+var _config = StanncamConfig();
 if(keyboard_check_pressed(vk_f4)){
-	var _window_mode = global.window_mode;
+	var _window_mode = _config.window_mode;
 	_window_mode++;
 	if(_window_mode == STANNCAM_WINDOW_MODE.__SIZE){
 		_window_mode = 0;
@@ -132,18 +133,18 @@ if(keyboard_check_pressed(vk_f5)){
 	split_screen = !split_screen;
 	
 	if(split_screen){
-		cam1.set_size(global.game_w / 2, global.game_h, GAME_SPEED / 2);
+		cam1.set_size(_config.game_w / 2, _config.game_h, GAME_SPEED / 2);
 	} else {
-		cam1.follow = obj_player_sidescroller;
-		cam2.follow = obj_player_sidescroller2;
-		cam1.set_size(global.game_w, global.game_h, GAME_SPEED / 2);
+		cam1.set_follow(obj_player_sidescroller);
+		if (is_instanceof(cam2, Stanncam)) { cam2.set_follow(obj_player_sidescroller2); }
+		cam1.set_size(_config.game_w, _config.game_h, GAME_SPEED / 2);
 	}
 }
 
 //makes the camera look ahead in the direction the player is going
-if(cam1.bounds_dist_w != 0){
+if(cam1.get_bounds_dist_w() != 0){
 	if(!lookahead){
-		cam1.offset(60 * sign(cam1.bounds_dist_w), 0, GAME_SPEED / 2);
+		cam1.offset(60 * sign(cam1.get_bounds_dist_w()), 0, GAME_SPEED / 2);
 		lookahead = true;
 	}
 } else {

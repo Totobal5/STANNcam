@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"stanncam_animcurve",
+  "%Name":"crispy_Case",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"stanncam_animcurve",
+  "name":"crispy_Case",
   "parent":{
-    "name":"Miscellaneous",
-    "path":"folders/STANNcam/Miscellaneous.yy",
+    "name":"Crispy",
+    "path":"folders/Crispy.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

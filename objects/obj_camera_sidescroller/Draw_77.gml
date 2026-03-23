@@ -2,8 +2,9 @@
 draw_sprite_tiled(spr_bg2, 0, 0, 0);
 
 //fancy splitscreen rendering
-var _width = global.res_w;
-var _height = global.res_h;
+var _config = StanncamConfig();
+var _width = _config.res_w;
+var _height = _config.res_h;
 
 //the parallax drawing is scaled down again
 var _scalex = 1 / stanncam_get_res_scale_x();
@@ -17,6 +18,6 @@ if(!split_screen){
 	cam1.draw_special(parallax_bg1, 0, 0, _scalex, _scaley, _width / 2, _height);
 	cam1.draw(0, 0);
 	
-	cam2.draw_special(parallax_bg2, global.game_w / 2, 0, _scalex, _scaley, _width / 2, _height);
-	cam2.draw(global.game_w / 2, 0);
+	cam2.draw_special(parallax_bg2, _config.game_w / 2, 0, _scalex, _scaley, _width / 2, _height);
+	cam2.draw(_config.game_w / 2, 0);
 }
