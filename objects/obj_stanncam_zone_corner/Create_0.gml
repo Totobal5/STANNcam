@@ -1,25 +1,30 @@
+/// @description constrains two adjacent sides based on image_angle
 event_inherited();
 
-left = false;
-top = false;
-right = false;
-bottom = false;
+left =		false;
+top =		false;
+right =		false;
+bottom =	false;
 
-switch (image_angle) {
+switch (image_angle)
+{
 	case 0:
 		right = true;
 		bottom = true;
-		break;
+	break;
+
 	case 90:
 		top = true;
 		right = true;
-		break;
+	break;
+
 	case 180:
 		left = true;
 		top = true;
-		break;
+	break;
+
 	case 270:
 		bottom = true;
 		left = true;
-		break;
+	break;
 }

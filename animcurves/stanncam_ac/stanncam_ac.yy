@@ -1,0 +1,27 @@
+{
+  "$GMAnimCurve":"",
+  "%Name":"stanncam_ac",
+  "channels":[
+    {"$GMAnimCurveChannel":"","%Name":"linear","colour":4290799884,"name":"linear","points":[
+        {"th0":-0.1,"th1":0.1,"tv0":0.0,"tv1":0.0,"x":0.0,"y":0.0,},
+        {"th0":-0.1,"th1":0.1,"tv0":0.0,"tv1":0.0,"x":1.0,"y":1.0,},
+      ],"resourceType":"GMAnimCurveChannel","resourceVersion":"2.0","visible":true,},
+    {"$GMAnimCurveChannel":"","%Name":"ease","colour":4281770252,"name":"ease","points":[
+        {"th0":-0.1,"th1":2.0954758E-09,"tv0":0.0,"tv1":0.0,"x":0.0,"y":0.0,},
+        {"th0":-0.5,"th1":0.1,"tv0":0.0,"tv1":0.0,"x":1.0,"y":1.0,},
+      ],"resourceType":"GMAnimCurveChannel","resourceVersion":"2.0","visible":true,},
+    {"$GMAnimCurveChannel":"","%Name":"bouncy","colour":4290800108,"name":"bouncy","points":[
+        {"th0":-0.1,"th1":0.28146017,"tv0":0.0,"tv1":0.0,"x":0.0,"y":0.0,},
+        {"th0":-0.11560963,"th1":0.24364233,"tv0":-0.3227591,"tv1":0.68020093,"x":0.50024146,"y":0.5,},
+        {"th0":-0.36604935,"th1":0.1,"tv0":-0.0071766376,"tv1":0.0,"x":1.0,"y":1.0,},
+      ],"resourceType":"GMAnimCurveChannel","resourceVersion":"2.0","visible":true,},
+  ],
+  "function":2,
+  "name":"stanncam_ac",
+  "parent":{
+    "name":"STANNcam",
+    "path":"folders/STANNcam.yy",
+  },
+  "resourceType":"GMAnimCurve",
+  "resourceVersion":"2.0",
+}

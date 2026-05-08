@@ -1,16 +1,18 @@
 /// @ignore [MAJOR.MINOR.PATH]
-#macro STANNCAM_VERSION "2.5.1-toto"
+#macro STANNCAM_VERSION "2.5.3"
 /// @ignore
-#macro STANNCAM_ALERT false
+#macro STANNCAM_ALERT true
+/// @ignore
+#macro STANNCAM_DRAW_DEBUG true
 /// @ignore 
-#macro STANNCAM_ERROR false
+#macro STANNCAM_ERROR true
 /// @ignore
-#macro STANNCAM_STRICT false
+#macro STANNCAM_STRICT true
 
 /// Config
 
 /// @ignore Let the camera manager open the debug overlay.
-#macro STANNCAM_DBGVIEW false
+#macro STANNCAM_DBGVIEW true
 /// @ignore The key need to open the debug overlay. Default is F12.
 #macro STANNCAM_DBGVIEW_KEY vk_f12
 

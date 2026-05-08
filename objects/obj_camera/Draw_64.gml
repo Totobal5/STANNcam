@@ -1,10 +1,13 @@
-//chooses pixel font or hires font
-if(gui_hires){
+// chooses pixel font or hires font
+if (gui_hires)
+{
 	draw_set_font(f_hires);
 	var _offset = 45;
 	var _outline_width = 4;
 	var _precision = 16;
-} else {
+} 
+else 
+{
 	draw_set_font(f_pixel);
 	var _offset = 8;
 	var _outline_width = 1;

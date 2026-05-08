@@ -155,26 +155,7 @@ function run_stanncam_tests()
 /// @ignore
 function __stanncam_test_reset_runtime()
 {
-	var _config = StanncamConfig();
-	var _len = array_length(_config.stanncams);
-	for (var i = 0; i < _len; ++i)
-	{
-		var _camera = _config.stanncams[i];
-		if (_camera != -1 && _camera != noone && is_instanceof(_camera, Stanncam) && !_camera.is_destroyed())
-		{
-			_camera.destroy();
-		}
-	}
-
-	if (instance_exists(_config.manager))
-	{
-		with (_config.manager) instance_destroy();
-	}
-
-	_config.stanncams = [];
-	_config.number_of_stanncams = 0;
-	_config.manager = noone;
-	_config.draw_zones = false;
+	__stanncam_runtime_reset(true);
 }
 
 /// @ignore
@@ -513,8 +494,8 @@ function test_stanncam_camera_get_active_zone_returns_value_type()
 	_camera.set_follow(_dummy);
 	var _zone = _camera.get_active_zone();
 
-	// Zone can be noone or a ds_list depending on zone setup
-	AssertTrue(_zone == noone || is_numeric(_zone), "get_active_zone should return a ds_list ID or noone");
+	// Zone can be noone or an array of zone instances depending on zone setup
+	AssertTrue(_zone == noone || is_array(_zone), "get_active_zone should return an array of zones or noone");
 
 	instance_destroy(_dummy);
 	_camera.destroy();

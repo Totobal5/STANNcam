@@ -7,22 +7,18 @@
 /// @param {Bool} [smooth_draw=true] - use fractional camera position when drawing
 function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamConfig().game_h, _surface_extra_on=false, _smooth_draw=true) constructor
 {
+	static __stanncam_ac_channels = {
+		linear: "linear",
+		ease:	"ease",
+		bouncy: "bouncy",
+	};
+	
 	#region Init
-	
-	// Whenever a new cam is created number_of_cams gets incremented
-	with (StanncamConfig() )
-	{
-		other.cam_id = number_of_stanncams;
-		stanncams[other.cam_id] = other;
-		++number_of_stanncams;
-	}
-	
-	// Checks if there are already 8 cameras.
-	if (cam_id == 8)
-	{
-		__stanncam_error("There can only be a maximum of 8 cameras.");
-	}
-	
+	var _config = StanncamConfig();
+
+	cam_id = _config.number_of_stanncams;
+	_config.Add(self);
+
 	/// @ignore Game Maker camera
 	__camera = camera_create();
 	view_camera[cam_id] = __camera;
@@ -53,6 +49,12 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	
 	/// @ignore
 	__follow = noone;
+	/// @ignore
+	__follow_warned = false;
+	/// @ignore
+	__missing_surface_warned = false;
+	/// @ignore
+	__app_surface_missing_warned = false;
 	
 	// The extra surface is only necessary if you are drawing the camera recursively in the room.
 	// Like a TV screen, where it can capture itself.
@@ -88,13 +90,13 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	
 	// Which animation curves to use for movement/zoom/size/offset animations.
 	/// @ignore
-	__anim_curve_move = stanncam_ac_ease;
+	__anim_curve_move = __stanncam_ac_channels.ease;
 	/// @ignore
-	__anim_curve_zoom = stanncam_ac_ease;
+	__anim_curve_zoom = __stanncam_ac_channels.ease;
 	/// @ignore
-	__anim_curve_size = stanncam_ac_ease;
+	__anim_curve_size = __stanncam_ac_channels.ease;
 	/// @ignore
-	__anim_curve_offset = stanncam_ac_ease;
+	__anim_curve_offset = __stanncam_ac_channels.ease;
 	
 	/// @ignore
 	__surface = -1;
@@ -111,16 +113,11 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	
 	
 	// Zone constrain.
-	// Last list added to array is the active list of zones.
+	// Last state in the array is the active zone state.
 	/// @ignore
-	__zone_lists_max = 4;
+	__zone_states_max = 4;
 	/// @ignore
-	__zone_lists = [noone]; // noone means no list of zones, i.e. not constrained.
-	
-	// How much strength each list of zones has.
-	// Previous ones gradually fall to 0 and then get removed.
-	/// @ignore
-	__zone_lists_strength = [1];
+	__zone_states = [{ zones : noone, strength : 1 }]; // noone means no active zones, i.e. not constrained.
 	
 	/// @ignore
 	__constrain_offset_x = 0;
@@ -230,11 +227,17 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	static __step = function()
 	{	
 		// Camera doesn't update if paused
-		if (get_paused()) { exit; }
+		if (get_paused() ) { exit; }
 		
 		#region Moving
 		if (instance_exists(__follow))
 		{
+			if (!__follow_warned)
+			{
+				__stanncam_alert($"Camera {cam_id} following {__follow} at ({__follow.x}, {__follow.y})");
+				__follow_warned = true;
+			}
+
 			// Update destination.
 			__xTo = __follow.x;
 			__yTo = __follow.y;
@@ -280,98 +283,45 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 		#region Zone Constrain
 		if (instance_exists(__follow))
 		{
-			var _zone_list = ds_list_create();
-			var _zone_count = instance_position_list(__follow.x, __follow.y, obj_stanncam_zone, _zone_list, false);
-			if (_zone_count != 0)
-			{
-				
-				// Adds included zones to list.
-				for (var j = 0; j < _zone_count; j++)
-				{
-					var _zone = _zone_list[| j];
-					var _included_zones_count = array_length(_zone.included_zones);
-					if (_included_zones_count > 0)
-					{
-						
-						for (var i = 0; i < _included_zones_count; i++)
-						{
-							var _included_zone = _zone.included_zones[i];
-							
-							// Included zones are added, unless they're already within the list.
-							if (ds_list_find_index(_zone_list, _included_zone) == -1)
-							{
-								ds_list_add(_zone_list, _included_zone);
-							}
-						}
-					}
-				}
-			}
-			else
-			{
-				ds_list_destroy(_zone_list);
-				_zone_list = noone;
-			}
+			var _zone_list = __collect_active_zones(__follow.x, __follow.y);
+			var _active_list = array_last(__zone_states).zones;
 			
-			var _active_list = array_last(__zone_lists);
-			
-			var _active_list_compare = noone;
-			if (ds_exists(_active_list, ds_type_list))
+			// If entering a new set of zones, add a new transition state.
+			if (!__zone_arrays_equal(_active_list, _zone_list))
 			{
-				_active_list_compare = ds_list_write(_active_list);
-			}
-			
-			var _zone_list_compare = noone;
-			if (ds_exists(_zone_list, ds_type_list))
-			{
-				_zone_list_compare = ds_list_write(_zone_list);
-			}
-			
-			// If entering a new list of zones, it gets added to zone_lists and previous ones fade out over time.
-			if (_active_list_compare != _zone_list_compare)
-			{
-				array_push(__zone_lists_strength, 0);
-				array_push(__zone_lists, _zone_list);
+				array_push(__zone_states, { zones : _zone_list, strength : 0 });
 
-				// Ensures that zone list arrays have a max size.
-				if (array_length(__zone_lists) > __zone_lists_max)
+				// Ensures that zone state array has a max size.
+				if (array_length(__zone_states) > __zone_states_max)
 				{
-					array_shift(__zone_lists_strength);
-					
-					// If the index being removed is a DS list, destroy it to prevent leaks.
-					if (ds_exists(__zone_lists[0], ds_type_list))
-					{
-						ds_list_destroy(__zone_lists[0]);
-					}
-					array_shift(__zone_lists);
+					array_shift(__zone_states);
 				}
 			}
 			
-			var _len = array_length(__zone_lists_strength) - 1;
+			var _len = array_length(__zone_states) - 1;
 			for (var k = 0; k <= _len; k++)
 			{
 				if (k != _len)
 				{
-					__zone_lists_strength[k] = lerp(__zone_lists_strength[k], 0, __constrain_spd);
+					__zone_states[k].strength = lerp(__zone_states[k].strength, 0, __constrain_spd);
 				}
 				else
 				{
-					__zone_lists_strength[k] = lerp(__zone_lists_strength[k], 1, __constrain_spd);
+					__zone_states[k].strength = lerp(__zone_states[k].strength, 1, __constrain_spd);
 				}
 				
-				if (__zone_lists_strength[k] == 0)
+				if (__zone_states[k].strength <= 0.001)
 				{
-					array_delete(__zone_lists_strength, k, 1);
+					array_delete(__zone_states, k, 1);
 					
-					// If the index being removed is a DS list, destroy it to prevent leaks.
-					if (ds_exists(__zone_lists[k], ds_type_list))
-					{
-						ds_list_destroy(__zone_lists[k]);
-					}
-					array_delete(__zone_lists, k, 1);
-					
-					_len = array_length(__zone_lists_strength) - 1;
+					_len = array_length(__zone_states) - 1;
 					k--;
 				}
+			}
+
+			if (array_length(__zone_states) == 0)
+			{
+				array_push(__zone_states, { zones : noone, strength : 1 });
 			}
 		}
 		
@@ -532,6 +482,18 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @param {Real} [_duration=0]
 	static set_size = function(_width, _height, _duration=0)
 	{
+		if (!is_real(_width) || !is_real(_height) || _width <= 0 || _height <= 0)
+		{
+			__stanncam_error($"Camera {cam_id}: set_size received invalid dimensions ({_width}, {_height})");
+			return;
+		}
+
+		if (!is_real(_duration) || _duration < 0)
+		{
+			__stanncam_error($"Camera {cam_id}: set_size received invalid duration ({_duration})");
+			return;
+		}
+
 		// If duration is 0 the view is updated immediately
 		if (_duration == 0)
 		{
@@ -583,6 +545,18 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @param {Real} [duration=0]
 	static zoom = function(_zoom, _duration=0)
 	{
+		if (!is_real(_zoom) || _zoom <= 0)
+		{
+			__stanncam_error($"Camera {cam_id}: zoom received invalid value ({_zoom}). Zoom must be > 0");
+			return;
+		}
+
+		if (!is_real(_duration) || _duration < 0)
+		{
+			__stanncam_error($"Camera {cam_id}: zoom received invalid duration ({_duration})");
+			return;
+		}
+
 		// If duration is 0 the view is updated immediately.
 		if (_duration == 0)
 		{
@@ -604,7 +578,101 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @param {Id.Instance|Noone} _follow
 	static set_follow = function(_follow)
 	{
+		if (_follow == noone)
+		{
+			__stanncam_alert($"Camera {cam_id}: Follow disabled (noone)");
+			__follow_warned = false;
+			__follow = noone;
+			return self;
+		}
+		
+		if (!instance_exists(_follow))
+		{
+			__stanncam_error($"Camera {cam_id}: set_follow received invalid target ({_follow})");
+			__follow = noone;
+			return self;
+		}
+		
 		__follow = _follow;
+		__follow_warned = false;
+		__stanncam_alert($"Camera {cam_id}: Following target {_follow} at ({_follow.x}, {_follow.y})");
+		return self;
+	}
+
+	/// @description sets animation curve channel for movement transitions
+	/// @param {Real|String} _curve
+	/// @returns {Struct.stanncam}
+	static set_move_anim_curve = function(_curve)
+	{
+		__anim_curve_move = __resolve_anim_curve_channel(_curve, __anim_curve_move, "set_move_anim_curve");
+		return self;
+	}
+
+	/// @description gets animation curve channel used by movement transitions
+	/// @returns {String}
+	static get_move_anim_curve = function()
+	{
+		return __anim_curve_move;
+	}
+
+	/// @description sets animation curve channel for zoom transitions
+	/// @param {Real|String} _curve
+	/// @returns {Struct.stanncam}
+	static set_zoom_anim_curve = function(_curve)
+	{
+		__anim_curve_zoom = __resolve_anim_curve_channel(_curve, __anim_curve_zoom, "set_zoom_anim_curve");
+		return self;
+	}
+
+	/// @description gets animation curve channel used by zoom transitions
+	/// @returns {String}
+	static get_zoom_anim_curve = function()
+	{
+		return __anim_curve_zoom;
+	}
+
+	/// @description sets animation curve channel for size transitions
+	/// @param {Real|String} _curve
+	/// @returns {Struct.stanncam}
+	static set_size_anim_curve = function(_curve)
+	{
+		__anim_curve_size = __resolve_anim_curve_channel(_curve, __anim_curve_size, "set_size_anim_curve");
+		return self;
+	}
+
+	/// @description gets animation curve channel used by size transitions
+	/// @returns {String}
+	static get_size_anim_curve = function()
+	{
+		return __anim_curve_size;
+	}
+
+	/// @description sets animation curve channel for offset transitions
+	/// @param {Real|String} _curve
+	/// @returns {Struct.stanncam}
+	static set_offset_anim_curve = function(_curve)
+	{
+		__anim_curve_offset = __resolve_anim_curve_channel(_curve, __anim_curve_offset, "set_offset_anim_curve");
+		return self;
+	}
+
+	/// @description gets animation curve channel used by offset transitions
+	/// @returns {String}
+	static get_offset_anim_curve = function()
+	{
+		return __anim_curve_offset;
+	}
+
+	/// @description sets animation curve channel for all transition types
+	/// @param {Real|String} _curve
+	/// @returns {Struct.stanncam}
+	static set_anim_curve_all = function(_curve)
+	{
+		var _resolved = __resolve_anim_curve_channel(_curve, __stanncam_ac_channels.ease, "set_anim_curve_all");
+		__anim_curve_move = _resolved;
+		__anim_curve_zoom = _resolved;
+		__anim_curve_size = _resolved;
+		__anim_curve_offset = _resolved;
 		return self;
 	}
 
@@ -789,6 +857,12 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @param {Real} _zoom_amount
 	static set_zoom_amount = function(_zoom_amount)
 	{
+		if (!is_real(_zoom_amount) || _zoom_amount <= 0)
+		{
+			__stanncam_error($"Camera {cam_id}: set_zoom_amount received invalid value ({_zoom_amount}). Zoom must be > 0");
+			return self;
+		}
+
 		__zoom_amount = _zoom_amount;
 		return self;
 	}
@@ -872,7 +946,7 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	{
 		if (__follow == noone) return noone;
 		
-		var _active_zones = array_last(__zone_lists);
+		var _active_zones = array_last(__zone_states).zones;
 		
 		if (_active_zones != noone) { return _active_zones; }
 
@@ -921,11 +995,20 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @description marks the stanncam as destroyed
 	static destroy = function()
 	{
+		if (__destroyed)
+		{
+			__stanncam_alert($"Camera {cam_id}: destroy called on already destroyed camera");
+			return;
+		}
+
 		camera_destroy(__camera);
 		with (StanncamConfig() )
 		{
-			stanncams[other.cam_id] = -1;
-			--number_of_stanncams;
+			if (other.cam_id >= 0 && other.cam_id < array_length(stanncams))
+			{
+				stanncams[other.cam_id] = -1;
+			}
+			number_of_stanncams = max(0, number_of_stanncams - 1);
 		}
 
 		view_camera[cam_id] = -1;
@@ -1000,6 +1083,94 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	#region Internal functions
 
 	/// @ignore
+	/// @param {Array<Id.Instance>|Noone} _zone_array
+	/// @param {Id.Instance} _zone
+	/// @returns {Bool}
+	static __zone_array_contains = function(_zone_array, _zone)
+	{
+		if (_zone_array == noone) return false;
+
+		var _len = array_length(_zone_array);
+		for (var i = 0; i < _len; i++)
+		{
+			if (_zone_array[i] == _zone) return true;
+		}
+
+		return false;
+	}
+
+	/// @ignore
+	/// @param {Array<Id.Instance>|Noone} _zones_a
+	/// @param {Array<Id.Instance>|Noone} _zones_b
+	/// @returns {Bool}
+	static __zone_arrays_equal = function(_zones_a, _zones_b)
+	{
+		if (_zones_a == _zones_b) return true;
+		if (_zones_a == noone || _zones_b == noone) return false;
+
+		var _len_a = array_length(_zones_a);
+		var _len_b = array_length(_zones_b);
+		if (_len_a != _len_b) return false;
+
+		for (var i = 0; i < _len_a; i++)
+		{
+			if (!__zone_array_contains(_zones_b, _zones_a[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// @ignore
+	/// @param {Real} _x
+	/// @param {Real} _y
+	/// @returns {Array<Id.Instance>|Noone}
+	static __collect_active_zones = function(_x, _y)
+	{
+		var _hits = ds_list_create();
+		var _hit_count = instance_position_list(_x, _y, obj_stanncam_zone, _hits, false);
+		if (_hit_count == 0)
+		{
+			ds_list_destroy(_hits);
+			return noone;
+		}
+
+		var _zones = [];
+		for (var i = 0; i < _hit_count; i++)
+		{
+			var _zone = _hits[| i];
+			if (instance_exists(_zone) && !__zone_array_contains(_zones, _zone))
+			{
+				array_push(_zones, _zone);
+			}
+		}
+
+		ds_list_destroy(_hits);
+
+		// Expands included zones transitively while avoiding duplicates.
+		for (var z = 0; z < array_length(_zones); z++)
+		{
+			var _zone = _zones[z];
+			var _included = _zone.included_zones;
+			var _included_count = array_length(_included);
+
+			for (var j = 0; j < _included_count; j++)
+			{
+				var _included_zone = _included[j];
+				if (instance_exists(_included_zone) && !__zone_array_contains(_zones, _included_zone))
+				{
+					array_push(_zones, _included_zone);
+				}
+			}
+		}
+
+		if (array_length(_zones) == 0) return noone;
+		return _zones;
+	}
+
+	/// @ignore
 	/// @param {Real} _time
 	/// @param {Real} _magnitude
 	/// @param {Real} _duration
@@ -1011,18 +1182,85 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	}
 
 	/// @ignore
+	/// @param {String} _channel_name
+	/// @returns {Bool}
+	static __anim_curve_channel_exists = function(_channel_name)
+	{
+		if (!is_string(_channel_name)) return false;
+
+		try
+		{
+			animcurve_get_channel_index(stanncam_ac, _channel_name);
+			return true;
+		}
+		catch (_err)
+		{
+			return false;
+		}
+	}
+
+	/// @ignore
+	/// @param {Real|String} _curve
+	/// @param {String} _default_channel
+	/// @param {String} _source
+	/// @returns {String}
+	static __resolve_anim_curve_channel = function(_curve, _default_channel, _source)
+	{
+		if (is_real(_curve))
+		{
+			switch (floor(_curve))
+			{
+				case 0: return __stanncam_ac_channels.linear;
+				case 1: return __stanncam_ac_channels.ease;
+				case 2: return __stanncam_ac_channels.bouncy;
+			}
+
+			__stanncam_error($"Camera {cam_id}: {_source} received invalid curve index ({_curve}). Valid indexes are 0=linear, 1=ease, 2=bouncy.");
+			return _default_channel;
+		}
+
+		if (is_string(_curve))
+		{
+			var _curve_name = string_lower(string_trim(_curve));
+			switch (_curve_name)
+			{
+				case "lineal":
+					_curve_name = __stanncam_ac_channels.linear;
+					break;
+				case "linear":
+				case "ease":
+				case "bouncy":
+					break;
+			}
+
+			if (__anim_curve_channel_exists(_curve_name))
+			{
+				return _curve_name;
+			}
+
+			__stanncam_error($"Camera {cam_id}: {_source} received unknown curve channel '{_curve}'. Add this channel to stanncam_ac or use linear/ease/bouncy.");
+			return _default_channel;
+		}
+
+		__stanncam_error($"Camera {cam_id}: {_source} received invalid curve value ({_curve}). Use channel name or index.");
+		return _default_channel;
+	}
+
+	/// @ignore
 	/// @param {Real} _t
 	/// @param {Real} _start
 	/// @param {Real} _finish
 	/// @param {Real} _dur
-	/// @param {Asset.GMAnimCurve} [_anim_curve=stanncam_ac_ease]
+	/// @param {Real|String} [_anim_curve="ease"]
 	/// @returns {Real}
-	static __anim_curve = function(_t, _start, _finish, _dur, _anim_curve=stanncam_ac_ease)
+	static __anim_curve = function(_t, _start, _finish, _dur, _anim_curve="ease")
 	{
 		if (_dur == 0) { return _finish; }
 
-		var _channel = animcurve_get_channel(_anim_curve, 0);
-		var _val = animcurve_channel_evaluate(_channel, (_t / _dur));
+		var _channel_name = __resolve_anim_curve_channel(_anim_curve, __stanncam_ac_channels.ease, "__anim_curve");
+
+		var _channel = animcurve_get_channel(stanncam_ac, _channel_name);
+		var _val = animcurve_channel_evaluate(_channel, clamp(_t / _dur, 0, 1));
 		return lerp(_start, _finish, _val);
 	}
 	
@@ -1050,16 +1288,62 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	{
 		if (__use_app_surface)
 		{
-			__surface = application_surface;
+			if (surface_exists(application_surface))
+			{
+				if (surface_exists(__surface) && __surface != application_surface)
+				{
+					surface_free(__surface);
+				}
+
+				__surface = application_surface;
+
+				if (__app_surface_missing_warned)
+				{
+					__stanncam_alert($"Camera {cam_id}: application_surface became available again");
+					__app_surface_missing_warned = false;
+				}
+			}
+			else
+			{
+				if (!__app_surface_missing_warned)
+				{
+					__stanncam_alert($"Camera {cam_id}: application_surface is not available yet, using temporary surface");
+					__app_surface_missing_warned = true;
+				}
+
+				if (!surface_exists(__surface) || __surface == application_surface)
+				{
+					var _safe_w = max(1, __width);
+					var _safe_h = max(1, __height);
+					__surface = surface_create(_safe_w, _safe_h);
+				}
+			}
 		} 
 		else 
 		{
-			if (!surface_exists(__surface)) { __surface = surface_create(__width, __height); }
+			if (!surface_exists(__surface))
+			{
+				if (__width <= 0 || __height <= 0)
+				{
+					__stanncam_error($"Camera {cam_id}: cannot create surface with invalid size ({__width}, {__height})");
+					exit;
+				}
+
+				__surface = surface_create(__width, __height);
+				if (!surface_exists(__surface))
+				{
+					__stanncam_error($"Camera {cam_id}: failed to create camera surface ({__width}, {__height})");
+				}
+			}
 		}
 		
 		if (__surface_extra_on && !surface_exists(__surface_extra))
 		{
 			__surface_extra = surface_create(__width, __height);
+			if (!surface_exists(__surface_extra))
+			{
+				__stanncam_error($"Camera {cam_id}: failed to create surface_extra ({__width}, {__height})");
+			}
 		}
 	}
 	
@@ -1088,7 +1372,7 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 			_left -= (__width / 2) * _zoom_whole;
 			_top -= (__height / 2) * _zoom_whole;
 			
-			surface_copy(__surface_extra, _left, _left, __surface);
+			surface_copy(__surface_extra, _left, _top, __surface);
 		}
 	}
 	
@@ -1158,8 +1442,8 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 		
 		#region Constraining
 		
-		var _constrain_offset_x = array_create(array_length(__zone_lists), 0);
-		var _constrain_offset_y = array_create(array_length(__zone_lists), 0);
+		var _constrain_offset_x = array_create(array_length(__zone_states), 0);
+		var _constrain_offset_y = array_create(array_length(__zone_states), 0);
 		
 		var _view_left    = view_to_room_x(0) + 1;
 		var _view_right   = view_to_room_x(_cam_width) + 1;
@@ -1172,10 +1456,11 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 		_view_bottom += _offset_y;
 		
 		// Zone constraining.
-		var _zone_len = array_length(__zone_lists);
+		var _zone_len = array_length(__zone_states);
 		for (var l = 0; l < _zone_len; l++)
 		{
-			if (__zone_lists[l] != noone)
+			var _zones = __zone_states[l].zones;
+			if (_zones != noone)
 			{	
 				var _zone_left   = undefined;
 				var _zone_right  = undefined;
@@ -1183,14 +1468,15 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 				var _zone_bottom = undefined;
 				
 				// Loop through every zone to find the narrowest constraint edges relative to camera position.
-				for (var z = 0; z < ds_list_size(__zone_lists[l]); z++)
+				for (var z = 0; z < array_length(_zones); z++)
 				{
-					var _zone = __zone_lists[l][| z];
+					var _zone = _zones[z];
 
 					// Room transitions can leave stale IDs in cached zone lists; prune them before access.
 					if (_zone == noone || !instance_exists(_zone) )
 					{
-						ds_list_delete(__zone_lists[l], z);
+						array_delete(_zones, z, 1);
+						__zone_states[l].zones = _zones;
 						z--;
 
 						continue;
@@ -1287,9 +1573,9 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 		__constrain_offset_x = 0;
 		__constrain_offset_y = 0;
 		
-		for (var i = 0; i < array_length(__zone_lists_strength); i++)
+		for (var i = 0; i < array_length(__zone_states); i++)
 		{
-			var _strength = __zone_lists_strength[i];
+			var _strength = __zone_states[i].strength;
 			
 			// With smooth draw off, it rounds the constraint transition
 			if (!_smooth_draw) { _strength = floor(_strength / 0.01 + 0.99) * 0.01; }
@@ -1528,6 +1814,11 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 			_x_frac += __x_frac;
 			_y_frac += __y_frac;
 		}
+		else
+		{
+			_x_frac = 0;
+			_y_frac = 0;
+		}
 		
 		draw_surf(__surface_special, _x, _y, _scale_x, _scale_y, -_x_frac, -_y_frac, _surf_width, _surf_height);
 	}
@@ -1545,7 +1836,17 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	/// @param {Bool} [ratio_compensate=true]
 	static draw_surf = function(_surface, _x, _y, _scale_x=1, _scale_y=1, _left=0, _top=0, _width=__width, _height=__height, _ratio_compensate=true)
 	{
-		if (!surface_exists(_surface)) { exit; }
+		if (!surface_exists(_surface))
+		{
+			if (!__missing_surface_warned)
+			{
+				__stanncam_alert($"Camera {cam_id}: draw_surf skipped because surface does not exist");
+				__missing_surface_warned = true;
+			}
+			exit;
+		}
+
+		__missing_surface_warned = false;
 		
 		// Offsets position to match display resolution.
 		_x *= stanncam_get_res_scale_x();
@@ -1569,8 +1870,19 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 			_x_frac += __x_frac;
 			_y_frac += __y_frac;
 		}
+		else
+		{
+			_x_frac = 0;
+			_y_frac = 0;
+		}
 		
 		var _zoom = __get_zoom();
+		if (_zoom <= 0)
+		{
+			__stanncam_error($"Camera {cam_id}: draw_surf detected invalid zoom ({_zoom})");
+			exit;
+		}
+
 		_left += (_width * (1 - _zoom)) / 2;
 		_top += (_height * (1 - _zoom)) / 2;
 		
@@ -1592,5 +1904,4 @@ function Stanncam(_x=0, _y=0, _width=StanncamConfig().game_w, _height=StanncamCo
 	{
 		return $"<Stanncam[{string(cam_id)}] ({string(__width)}, {string(__height)})>";
 	}
-
 }

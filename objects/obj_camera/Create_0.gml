@@ -1,15 +1,24 @@
-//camera
-stanncam_init(320, 180, 1280, 720, 640, 360);
-cam1 = new Stanncam(obj_player.x, obj_player.y, StanncamConfig().game_w, StanncamConfig().game_h, 0, 0);
+/// @description Demo 1
+var _config = StanncamConfig();
+
+__stanncam_alert($"Demo1 Create: game=({_config.game_w}, {_config.game_h}) room=({room_width}, {room_height})");
+if (!instance_exists(obj_player))
+{
+	__stanncam_error($"Demo1 Create: obj_player does not exist before camera creation");
+}
+
+cam1 = new Stanncam(obj_player.x, obj_player.y, _config.game_w, _config.game_h, 0, 0);
+__stanncam_alert($"Demo1 Create: cam1 created with id={cam1.cam_id}");
 cam1.set_follow(obj_player);
-
 cam1.set_bounds(10, 10);
+__stanncam_alert($"Demo1 Create: cam1 follow configured");
 
+// Test 2 cameras (Player 1 & Player 2)
 cam2 = undefined;
 
 split_screen = false;
 
-//pointer
+// Pointer
 pointer = false;
 pointer_x = 0;
 pointer_y = 0;

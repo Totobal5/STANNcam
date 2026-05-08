@@ -46,7 +46,7 @@
   "origin":0,
   "parent":{
     "name":"Sprites",
-    "path":"folders/Extensions/STANNcam/Zones/Sprites.yy",
+    "path":"folders/STANNcam/Zones/Sprites.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

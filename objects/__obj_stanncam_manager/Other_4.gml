@@ -1,28 +1,7 @@
+/// @description Initializes all stanncams in the room.
 view_enabled = true;
-var _stanncams = StanncamConfig().stanncams;
-var _len = array_length(_stanncams);
-for (var i = 0; i < _len; ++i)
-{
-	var _cam = _stanncams[i];
-	if(_cam == -1) continue;
-	_cam.__check_viewports();
-	_cam.__step();
-	
-	// If following something, snap the camera to it on room start
-	if (STANNCAM_CONFIG_SNAP_TO_FOLLOW_ON_ROOM_START && instance_exists(_cam.get_follow()))
-    {
-		var _follow = _cam.get_follow();
-		_cam.move(_follow.x, _follow.y, 0);
-		
-		if (STANNCAM_CONFIG_SNAP_TO_ZONE_ON_ROOM_START)
-        {
-			var _list_strength_length = array_length(_cam.__zone_lists_strength);
-			if (_list_strength_length > 0)
-            {
-				_cam.__zone_lists_strength[_list_strength_length-1] = 1;
-			}
-		}
-	}
-}
+var _stanncams = __get_stanncams();
+__stanncam_alert($"Room Start: Initializing {array_length(_stanncams)} camera(s)");
+array_foreach(_stanncams, __stanncams_roomstart);
 
 __stanncam_update_resolution();

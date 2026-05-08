@@ -1,7 +1,2 @@
-var _stanncams = StanncamConfig().stanncams;
-var _len = array_length(_stanncams);
-for (var i = 0; i < _len; ++i)
-{
-	if (_stanncams[i] == -1) continue;
-	_stanncams[i].__predraw();
-}
+/// @description Pre-draws all stanncams in the room.
+array_foreach(__get_stanncams(), __stanncams_predraw);

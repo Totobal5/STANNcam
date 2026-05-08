@@ -1,14 +1,83 @@
-# GameMaker files
+# Windows
+
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Mac
+
+## General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+## Icon must end with two \r
+Icon
+
+## Thumbnails
+._*
+
+## Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.tmp
+
+## Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# GameMaker temporary files
 *.resource_order
+*.old
 
-# YYP Maker files
-___yyp_maker_trash/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 
-# Stitch files
-stitch.config.json
-tmp/
-/options
-sprites.import.json
-sprites.info.json
+# Game Maker cache
+*.gmcache
 
-/.github
+# Virtual environments
+*.venv
+
+# GMRT
+.Build
+Build/
+
+# Github
+.github/GameMaker-Manual
+.github/git-log
+.github/skills
+.github/copilot-instructions.md

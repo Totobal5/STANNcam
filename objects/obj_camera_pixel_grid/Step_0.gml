@@ -77,7 +77,8 @@ hspd = clamp(hspd, -max_spd, max_spd);
 vspd = clamp(vspd, -max_spd, max_spd);
 	
 if(hspd != 0 || vspd != 0){
-	var _x = cam1.x + hspd;
-	var _y = cam1.y + vspd;
+	var _pos = cam1.GetPosition();
+	var _x = _pos.x + hspd;
+	var _y = _pos.y + vspd;
 	cam1.move(_x, _y, 0);
 }

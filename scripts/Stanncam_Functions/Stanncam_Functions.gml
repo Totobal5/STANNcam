@@ -16,150 +16,220 @@ function __stanncam_alert(_msg)
     if (STANNCAM_ALERT) { show_debug_message("Stanncam::Alert - " + string(_msg)); }
 }
 
-
+/// @ignore Singleton pattern for storing config values and references to cameras/manager
 function StanncamConfig()
 {
-    static Config = {
-        stanncams: [],
-        number_of_stanncams: 0,
-        
-        manager: noone,
-        draw_zones: false,
-        
-        game_w: 0,
-        game_h: 0,
-        
-        gui_w: 0,
+	static Config = {
+		stanncams: [],
+		number_of_stanncams: 0,
+		
+		manager: noone,
+		draw_zones: false,
+		
+		game_w: 0,
+		game_h: 0,
+		
+		gui_w: 0,
 		__gui_res_w: 0,
-        
-        gui_h: 0,
+		
+		gui_h: 0,
 		__gui_res_h: 0,
-        
+		
 		display_res_w: 0,
 		display_res_h: 0,
-        
-        res_w: 0,
-        res_h: 0,
-        
-        window_mode: STANNCAM_WINDOW_MODE.WINDOWED,
-        /// @ignore
-        __switching_window_mode: false,
+		
+		res_w: 0,
+		res_h: 0,
+		
+		window_mode: STANNCAM_WINDOW_MODE.WINDOWED,
+		/// @ignore
+		__switching_window_mode: false,
 		/// @ignore
 		__resize_width: 0,
 		/// @ignore
 		__resize_height: 0,
-        
-        keep_aspect_ratio: true,
-        gui_keep_aspect_ratio: true,
-        
-        /// @ignore
+		
+		keep_aspect_ratio: true,
+		gui_keep_aspect_ratio: true,
+		
+		/// @ignore
 		__display_scale_x: 1,
-        /// @ignore
+		/// @ignore
 		__display_scale_y: 1,
-        
+		
 		/// @ignore
 		__gui_x_scale: 1,
 		/// @ignore
 		__gui_y_scale: 1,
-        
-        /// @ignore
-        __time_source: time_source_create(time_source_global, 1, time_source_units_frames, function() {
-            if (!instance_exists(__obj_stanncam_manager) ) 
-            {
-                instance_activate_object(__obj_stanncam_manager);
-                if (instance_exists(__obj_stanncam_manager) )
-                {
-                    __stanncam_error("__obj_stanncam_manager has been deactivated.\nMake sure that it is never deactivated.\nConsider using instance_activate_object(__obj_stanncam_manager)\nin the same step you deactivate other stuff.")
-    			}
-    		}
-    	}, [], -1),
-        
-        
-        GetScaledW: function() { return (game_w * __display_scale_x); },
-        
-		GetScaledH: function() { return (game_h * __display_scale_y); }        
-    }
-    
-    return Config;
+		
+		/// @ignore Check for the manager instance every frame and restart it if it doesn't exist, to prevent issues with it being deactivated or destroyed
+		__time_source: time_source_create(time_source_global, 1, time_source_units_frames, function() {
+			if (!instance_exists(__obj_stanncam_manager) ) 
+			{
+				instance_activate_object(__obj_stanncam_manager);
+				if (instance_exists(__obj_stanncam_manager) )
+				{
+					__stanncam_error("__obj_stanncam_manager has been deactivated.\nMake sure that it is never deactivated.\nConsider using instance_activate_object(__obj_stanncam_manager)\nin the same step you deactivate other stuff.")
+				}
+			}
+		}, [], -1),
+		
+		/// @description gets the scaled width of the display resolution
+		/// @returns {Real}
+		GetScaledW: function() { return (game_w * __display_scale_x); },
+		
+		/// @description gets the scaled height of the display resolution
+		/// @returns {Real}
+		GetScaledH: function() { return (game_h * __display_scale_y); },
+		
+		/// @description adds a stanncam to the stanncam array and returns it, returns -1 if there are already 8 stanncams in the room
+		/// @param {Stanncam} _stanncam
+		/// @returns {Stanncam|Real}
+		Add: function(_stanncam)
+		{
+			if (array_length(stanncams) >= 8)
+			{
+				__stanncam_error($"Maximum number of stanncams (8) has been reached. Current count: {array_length(stanncams)}");
+				return -1;
+			}
+
+			if (_stanncam == noone || _stanncam == undefined)
+			{
+				__stanncam_error("Add() received invalid stanncam reference (undefined/noone)");
+				return -1;
+			}
+
+			array_push(stanncams, _stanncam);
+			number_of_stanncams = array_length(stanncams);
+
+			__stanncam_alert($"Added Stanncam (Total cameras: {number_of_stanncams})");
+			return _stanncam;
+		},
+	};
+
+	return Config;
 }
 
 /// @description set game dimensions, display resolution, and gui dimensions, it's the same as game scale by default
-/// @param {Real} _game_w
-/// @param {Real} _game_h
-/// @param {Real} [_resolution_w=_game_w]
-/// @param {Real} [_resolution_h=_game_h]
-/// @param {Real} [_gui_w=_game_w]
-/// @param {Real} [_gui_h=_game_h]
-/// @param {Real} [_window_mode=STANNCAM_WINDOW_MODE.WINDOWED]
+/// @param {Real} game_w
+/// @param {Real} game_h
+/// @param {Real} [resolution_w=_game_w]
+/// @param {Real} [resolution_h=_game_h]
+/// @param {Real} [gui_w=_game_w]
+/// @param {Real} [gui_h=_game_h]
+/// @param {Real} [window_mode=STANNCAM_WINDOW_MODE.WINDOWED]
 function stanncam_init(_game_w, _game_h, _resolution_w=_game_w, _resolution_h=_game_h, _gui_w=_game_w, _gui_h=_game_h, _window_mode=STANNCAM_WINDOW_MODE.WINDOWED)
 {
-    with (StanncamConfig() )
-    {
-        if (manager == noone || !instance_exists(manager)) { manager = instance_create_depth(0, 0, 0, __obj_stanncam_manager); }
+	with (StanncamConfig() )
+	{
+		// Re-initialize the manager every time stanncam_init is called, to ensure it exists and is running the correct configuration.
+		if (manager == noone || !instance_exists(manager)) 
+		{
+			manager = instance_create_depth(0, 0, 0, __obj_stanncam_manager); 
+			__stanncam_alert("stanncam_init: Created new __obj_stanncam_manager instance.");
+		}
 
 		// If STANNcam is re-initialized across rooms, purge previous camera structs before creating new ones.
-		for (var c = 0; c < array_length(stanncams); c++)
-		{
-			var _cam = stanncams[c];
-			if (_cam != -1 && _cam != noone && is_instanceof(_cam, Stanncam) && !_cam.is_destroyed())
-			{
-				_cam.destroy();
+		array_foreach(stanncams, function(_stanncam) {
+			if (_stanncam != -1 && _stanncam != noone)
+			{ 
+				if (is_instanceof(_stanncam, Stanncam) && !_stanncam.is_destroyed() ) _stanncam.destroy(); 
 			}
-		}
+		});
 
 		stanncams = [];
 		number_of_stanncams = 0;
-        
-    	game_w = _game_w;
-    	game_h = _game_h;
-    	
-        gui_w = _gui_w;
-    	gui_h = _gui_h;
+		
+		game_w = _game_w;
+		game_h = _game_h;
+		
+		gui_w = _gui_w;
+		gui_h = _gui_h;
 		__gui_res_w = _gui_w;
 		__gui_res_h = _gui_h;
-    	
+		
 		display_res_w = _resolution_w;
 		display_res_h = _resolution_h;
 		res_w = _resolution_w;
 		res_h = _resolution_h;
 		__resize_width = window_get_width();
 		__resize_height = window_get_height();
-    	window_mode = _window_mode;
-        
-       	var i=0; repeat (array_length(view_camera) ) { camera_destroy(view_camera[i++]); }
-    	application_surface_draw_enable(false);
-    	
-    	stanncam_set_resolution(_resolution_w, _resolution_h);
-    	stanncam_set_window_mode(_window_mode);
-        
-        if (time_source_get_state(__time_source) == time_source_state_initial) 
-        { 
-            time_source_start(__time_source); 
-            __stanncam_alert("Time source start");
-        }
-    }
+		window_mode = _window_mode;
+		
+		var i=0; repeat (array_length(view_camera) ) { camera_destroy(view_camera[i++]); }
+		application_surface_draw_enable(false);
+		
+		stanncam_set_resolution(_resolution_w, _resolution_h);
+		stanncam_set_window_mode(_window_mode);
+		
+		if (time_source_get_state(__time_source) == time_source_state_initial) 
+		{ 
+			time_source_start(__time_source); 
+			__stanncam_alert("stanncam_init: Time source start");
+		}
+	}
 
+	__stanncam_alert("STANNcam initialized successfully");
+}
+
+/// @ignore
+/// @description resets runtime state for cameras/manager/config; used by destroy and tests
+/// @param {Bool} [_restore_app_surface_draw=true]
+function __stanncam_runtime_reset(_restore_app_surface_draw=true)
+{
+	var _config = StanncamConfig();
+
+	if (_restore_app_surface_draw) { application_surface_draw_enable(true); }
+	
+	array_foreach(_config.stanncams, function(_stanncam) {
+		if (_stanncam != -1 && _stanncam != noone)
+		{
+			if (is_instanceof(_stanncam, Stanncam) && !_stanncam.is_destroyed())
+			{
+				_stanncam.destroy();
+			}
+		}
+	});
+
+	if (instance_exists(__obj_stanncam_manager))
+	{
+		instance_destroy(__obj_stanncam_manager);
+	}
+
+	var i = 0; repeat (array_length(view_camera) )
+	{
+		view_camera[i] = -1;
+		view_visible[i] = false;
+		i++;
+	}
+
+	_config.stanncams = [];
+	_config.number_of_stanncams = 0;
+	_config.manager = noone;
+	_config.draw_zones = false;
+	_config.__switching_window_mode = false;
 }
 
 /// @description removes all stanncam references from the game, the opposite of stanncam_init
-/// @param {Bool} [_application_surface_draw_enable=true]
+/// @param {Bool} [application_surface_draw_enable=true]
 function stanncam_destroy(_application_surface_draw_enable=true)
 {
 	var _config = StanncamConfig();
-	application_surface_draw_enable(_application_surface_draw_enable);
-	
+	__stanncam_runtime_reset(_application_surface_draw_enable);
 	time_source_destroy(_config.__time_source, true);
-    
-	array_foreach(_config.stanncams, function(_stanncam) { _stanncam.destroy(); });
-    
-	instance_destroy(__obj_stanncam_manager);
 }
 
 /// @description updates the camera resolution, has no visible effect when fullscreened
-/// @param {Real} _resolution_w
-/// @param {Real} _resolution_h
+/// @param {Real} resolution_w
+/// @param {Real} resolution_h
 function stanncam_set_resolution(_resolution_w, _resolution_h)
 {
+	if (!is_real(_resolution_w) || !is_real(_resolution_h) || _resolution_w <= 0 || _resolution_h <= 0)
+	{
+		__stanncam_error($"stanncam_set_resolution received invalid size: ({_resolution_w}, {_resolution_h})");
+		return;
+	}
+
     with (StanncamConfig() )
     {
 		display_res_w = _resolution_w;
@@ -169,10 +239,22 @@ function stanncam_set_resolution(_resolution_w, _resolution_h)
 	__stanncam_update_resolution();
 }
 
-/// @param {Real} _window_mode
+/// @param {Real} window_mode
 /// @description set game to be windowed/fullscreen/borderless
 function stanncam_set_window_mode(_window_mode)
 {
+	static __k = function() { StanncamConfig().__switching_window_mode = false; __stanncam_update_resolution(); };
+	var _is_valid_mode =
+		(_window_mode == STANNCAM_WINDOW_MODE.WINDOWED) ||
+		(_window_mode == STANNCAM_WINDOW_MODE.FULLSCREEN) ||
+		(_window_mode == STANNCAM_WINDOW_MODE.BORDERLESS);
+
+	if (!_is_valid_mode)
+	{
+		__stanncam_error($"stanncam_set_window_mode received invalid mode: {_window_mode}");
+		return;
+	}
+
 	var _config = StanncamConfig();
 	_config.window_mode = _window_mode;
 	_config.__switching_window_mode = true;
@@ -196,10 +278,7 @@ function stanncam_set_window_mode(_window_mode)
         break;
 	}
     
-	call_later(11, time_source_units_frames, function() {
-		StanncamConfig().__switching_window_mode = false;
-		__stanncam_update_resolution();
-	});
+	call_later(8, time_source_units_frames, __k);
 }
 
 /// @description set windowed
@@ -221,7 +300,7 @@ function stanncam_set_borderless()
 }
 
 /// @description set display keep_aspect_ratio
-/// @param {Bool} _on_off
+/// @param {Bool} on_off
 function stanncam_set_keep_aspect_ratio(_on_off)
 {
 	var _config = StanncamConfig();
@@ -229,7 +308,7 @@ function stanncam_set_keep_aspect_ratio(_on_off)
 	__stanncam_update_resolution();
 }
 
-/// @param {Bool} _on_off
+/// @param {Bool} on_off
 function stanncam_set_gui_keep_aspect_ratio(_on_off)
 {
 	var _config = StanncamConfig();
@@ -280,10 +359,16 @@ function stanncam_ratio_compensate_y()
 }
 
 /// @description set the gui resolution
-/// @param {Real} _gui_w
-/// @param {Real} _gui_h
+/// @param {Real} gui_w
+/// @param {Real} gui_h
 function stanncam_set_gui_resolution(_gui_w, _gui_h)
 {
+	if (!is_real(_gui_w) || !is_real(_gui_h) || _gui_w <= 0 || _gui_h <= 0)
+	{
+		__stanncam_error($"stanncam_set_gui_resolution received invalid size: ({_gui_w}, {_gui_h})");
+		return;
+	}
+
     with (StanncamConfig() )
     {
 		__gui_res_w = _gui_w;
@@ -505,6 +590,24 @@ function __stanncam_center(_x=0, _y=0)
 /// @returns {Struct}
 function stanncam_get_preset_resolution(_preset_index)
 {
+	if (!variable_global_exists("stanncam_res_presets"))
+	{
+		__stanncam_error("stanncam_res_presets is not defined");
+		return undefined;
+	}
+
+	if (!is_real(_preset_index))
+	{
+		__stanncam_error($"stanncam_get_preset_resolution received invalid index: {_preset_index}");
+		return undefined;
+	}
+
+	if (_preset_index < 0 || _preset_index >= array_length(global.stanncam_res_presets))
+	{
+		__stanncam_error($"stanncam_get_preset_resolution index out of range: {_preset_index}");
+		return undefined;
+	}
+
 	return global.stanncam_res_presets[@ _preset_index];
 }
 
@@ -514,8 +617,24 @@ function stanncam_get_preset_resolution(_preset_index)
 /// @returns {Array<Struct>}
 function stanncam_get_preset_resolution_range(_start_i=0, _end_i=array_length(global.stanncam_res_presets)-1)
 {
+	if (!variable_global_exists("stanncam_res_presets"))
+	{
+		__stanncam_error("stanncam_res_presets is not defined");
+		return [];
+	}
+
 	var _start = min(_start_i, _end_i);
 	var _end = max(_start_i, _end_i);
+	var _max_i = array_length(global.stanncam_res_presets) - 1;
+
+	_start = clamp(_start, 0, _max_i);
+	_end = clamp(_end, 0, _max_i);
+
+	if (_start > _end)
+	{
+		__stanncam_error($"stanncam_get_preset_resolution_range received invalid range: ({_start_i}, {_end_i})");
+		return [];
+	}
 	
 	return array_map(global.stanncam_res_presets, function(_i) { return stanncam_get_preset_resolution(_i); }, _start, _end);
 }
@@ -539,13 +658,19 @@ function stanncam_toggle_cameras_paused()
 }
 
 /// @description sets all cameras to paused state
-/// @param {Bool} _paused
+/// @param {Bool} paused
 function stanncam_set_cameras_paused(_paused)
 {
 	var _config = StanncamConfig();
-	array_foreach(_config.stanncams, method({_paused}, function(_stanncam) {
-		if (_stanncam != -1) { _stanncam.set_paused(_paused); } 
-	}) );
+	var _len = array_length(_config.stanncams);
+	for (var i = 0; i < _len; i++)
+	{
+		var _stanncam = _config.stanncams[i];
+		if (_stanncam != -1)
+		{
+			_stanncam.set_paused(_paused);
+		}
+	}
 }
 
 /// @description sets all cameras to paused state

@@ -126,8 +126,7 @@ function __stanncam_debug_create_camera_view(_camera)
 	dbg_watch(ref_create(_camera, "__constrain_offset_y"), "Constrain Offset Y");
 	dbg_watch(ref_create(_camera, "__constrain_frac_x"), "Constrain Frac X");
 	dbg_watch(ref_create(_camera, "__constrain_frac_y"), "Constrain Frac Y");
-	dbg_watch(ref_create(_camera, "__zone_lists"), "Zone Lists");
-	dbg_watch(ref_create(_camera, "__zone_lists_strength"), "Zone Strengths");
+	dbg_watch(ref_create(_camera, "__zone_states"), "Zone States");
 }
 
 function stanncam_debug_sync_overlay()

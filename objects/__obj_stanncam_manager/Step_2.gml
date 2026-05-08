@@ -1,19 +1,28 @@
-// Constantly checks if the window is being resized and changes the resolution to match
-with (StanncamConfig() )
+/// @description Steps all stanncams in the room and checks for window resizing and debug overlay toggling.
+// Updates all stanncams in the room every step.
+var _stanncams = __get_stanncams();
+if (array_length(_stanncams) == 0)
 {
-	array_foreach(stanncams, function(_cam) {
-		if (_cam != -1) _cam.__step(); 
-	} );
-
-    if (window_mode == STANNCAM_WINDOW_MODE.WINDOWED && !__switching_window_mode && (__resize_width != window_get_width() || __resize_height != window_get_height()) )
+    if (!__warned_no_cameras)
     {
-        __resize_width = window_get_width();
-        __resize_height = window_get_height();
-
-        if (__resize_width != 0 && __resize_height != 0) { stanncam_set_resolution(__resize_width, __resize_height); }
+        __stanncam_error($"Manager Step: No cameras registered in StanncamConfig().stanncams");
+        __warned_no_cameras = true;
     }
 }
+else
+{
+    if (__warned_no_cameras)
+    {
+        __stanncam_alert($"Manager Step: Cameras detected again ({array_length(_stanncams)})");
+        __warned_no_cameras = false;
+    }
+    array_foreach(_stanncams, __stanncams_step);
+}
 
+// Constantly checks if the window is being resized and changes the resolution to match
+__check_window_resize();
+
+// Toggles the debug overlay when the debug view key is pressed, and syncs the overlay if it's open
 if (STANNCAM_DBGVIEW)
 {
     if (keyboard_check_pressed(STANNCAM_DBGVIEW_KEY) )
