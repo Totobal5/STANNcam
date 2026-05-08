@@ -33,7 +33,7 @@ jobs:
           project-file: "stanncam.yyp"
           package-id: "STANNcam"
           include-folders: "STANNcam"
-          package-name: "STANNCam"
+          package-name: "STANNcam"
           package-publisher: "Totobal"
           append-version-to-filename: "true"
           auto-generate-description: "true"

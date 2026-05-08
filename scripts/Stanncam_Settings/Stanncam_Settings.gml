@@ -1,5 +1,5 @@
 /// @ignore [MAJOR.MINOR.PATH]
-#macro STANNCAM_VERSION "2.5.3"
+#macro STANNCAM_VERSION "2.5.4"
 /// @ignore
 #macro STANNCAM_ALERT true
 /// @ignore
